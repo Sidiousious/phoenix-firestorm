@@ -65,29 +65,36 @@ bool LLEmojiHelper::isCursorInEmojiCode(const LLWString& wtext, S32 cursorPos, S
 	}
 	// </FS:PP>
 
-	// If the cursor is currently on a colon start the check one character further back
-	S32 shortCodePos = (cursorPos == 0 || L':' != wtext[cursorPos - 1]) ? cursorPos : cursorPos - 1;
+	if (wtext.empty()) { return false; }
 
-	auto isPartOfShortcode = [](llwchar ch) {
-		switch (ch)
+	try {
+		// If the cursor is currently on a colon start the check one character further back
+		S32 shortCodePos = (cursorPos == 0 || L':' != wtext.at(cursorPos - 1)) ? cursorPos : cursorPos - 1;
+
+		auto isPartOfShortcode = [](llwchar ch) {
+			switch (ch)
+			{
+				case L'-':
+				case L'_':
+				case L'+':
+					return true;
+				default:
+					return LLStringOps::isAlnum(ch);
+			}
+		};
+		while (shortCodePos > 1 && isPartOfShortcode(wtext.at(shortCodePos - 1)))
 		{
-			case L'-':
-			case L'_':
-			case L'+':
-				return true;
-			default:
-				return LLStringOps::isAlnum(ch);
+			shortCodePos--;
 		}
-	};
-	while (shortCodePos > 1 && isPartOfShortcode(wtext[shortCodePos - 1]))
-	{
-		shortCodePos--;
-	}
 
-	bool isShortCode = (L':' == wtext[shortCodePos - 1]) && (cursorPos - shortCodePos >= 2);
-	if (pShortCodePos)
-		*pShortCodePos = (isShortCode) ? shortCodePos - 1 : -1;
-	return isShortCode;
+		bool isShortCode = (L':' == wtext.at(shortCodePos - 1)) && (cursorPos - shortCodePos >= 2);
+		if (pShortCodePos)
+			*pShortCodePos = (isShortCode) ? shortCodePos - 1 : -1;
+		return isShortCode;
+	}
+	catch (std::out_of_range&) {
+		return false;
+	}
 }
 
 void LLEmojiHelper::showHelper(LLUICtrl* hostctrl_p, S32 local_x, S32 local_y, const std::string& short_code, std::function<void(llwchar)> cb)
